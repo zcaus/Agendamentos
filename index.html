@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Interna - Art Nail Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght%40400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cor-principal: #8A2BE2; /* Rosa Choque */
+            --cor-secundaria: #8A2BE2; /* Azul Violeta */
+            --cor-fundo: #F8F8FF; /* Fundo Leve */
+            --cor-texto: #333333;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--cor-fundo);
+        }
+        /* Definição de cores customizadas no Tailwind */
+        .bg-primary { background-color: var(--cor-principal); }
+        .text-primary { color: var(--cor-principal); }
+        .bg-secondary { background-color: var(--cor-secundaria); }
+        .hover-bg-secondary:hover { background-color: color-mix(in srgb, var(--cor-secundaria) 90%, black); }
+        .border-primary { border-color: var(--cor-principal); }
+        .shadow-custom { box-shadow: 0 10px 15px -3px rgba(138, 43, 226, 0.1), 0 4px 6px -2px rgba(138, 43, 226, 0.05); }
+        /* Esconde temporariamente a sobreposição para evitar CLS antes da inicialização */
+        #loading-overlay { opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .is-loading #loading-overlay { opacity: 1; pointer-events: all; }
+    </style>
+</head>
+<body class="min-h-screen antialiased text-gray-800 is-loading">
+
+    <header class="bg-primary p-6 shadow-xl">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-white tracking-widest">Studio Sabrina Azeredo</h1>
+            <div id="auth-status" class="text-sm text-white/90">Carregando...</div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-8">
+        <div id="loading-overlay" class="fixed inset-0 bg-white/70 flex flex-col items-center justify-center z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-secondary"></div>
+            <p id="loading-message" class="ml-4 text-secondary font-semibold mt-4">Conectando ao Banco de Dados...</p>
+        </div>
+        
+        <div id="agenda-container" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <section class="lg:col-span-1 bg-white p-6 rounded-xl shadow-custom h-fit">
+                
+                <h2 class="text-xl font-bold mb-4 border-b pb-2 text-primary">💅 Novo Agendamento</h2>
+                <form id="form-agendamento" class="space-y-4">
+                    
+                    <div class="space-y-1">
+                        <label for="nome-cliente" class="block text-sm font-medium text-gray-700">Nome da Cliente</label>
+                        <input type="text" id="nome-cliente" required placeholder="Ex: Maria da Silva" class="w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary transition">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="telefone-cliente" class="block text-sm font-medium text-gray-700">Telefone (Opcional)</label>
+                        <input type="tel" id="telefone-cliente" placeholder="(XX) XXXXX-XXXX" class="w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary transition">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="servico" class="block text-sm font-medium text-gray-700">Serviço</label>
+                        <select id="servico" required class="w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary transition bg-white">
+                            <option value="">Carregando Serviços...</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label for="data-agenda" class="block text-sm font-medium text-gray-700">Data</label>
+                            <input type="date" id="data-agenda" required class="w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary transition">
+                        </div>
+                        <div class="space-y-1">
+                            <label for="hora-agenda" class="block text-sm font-medium text-gray-700">Hora de Início</label>
+                            <input type="time" id="hora-agenda" required class="w-full p-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-1 focus:ring-primary transition">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="btn-agendar" class="bg-secondary text-white p-3 w-full rounded-lg font-semibold hover-bg-secondary transition duration-300 shadow-md">
+                        Agendar Horário
+                    </button>
+                    <div id="form-message" class="text-center p-2 text-sm hidden rounded-lg"></div>
+                </form>
+                
+                <div class="mt-8 pt-4 border-t border-gray-200">
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-secondary">⚙️ Gerenciar Serviços</h2>
+                    <form id="form-servico" class="space-y-3">
+                        
+                        <div class="space-y-1">
+                            <label for="nome-servico" class="block text-sm font-medium text-gray-700">Nome do Serviço</label>
+                            <input type="text" id="nome-servico" required placeholder="Ex: Manicure e Pedicure" class="w-full p-2 border border-gray-300 rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary transition">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label for="duracao-servico" class="block text-sm font-medium text-gray-700">Duração (minutos)</label>
+                                <input type="number" id="duracao-servico" required min="5" placeholder="Ex: 90" class="w-full p-2 border border-gray-300 rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary transition">
+                            </div>
+                            <div class="space-y-1">
+                                <label for="valor-servico" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                                <input type="number" id="valor-servico" required min="0" step="0.01" placeholder="Ex: 85.00" class="w-full p-2 border border-gray-300 rounded-lg focus:border-secondary focus:ring-1 focus:ring-secondary transition">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" id="btn-adicionar-servico" class="bg-secondary text-white p-3 w-full rounded-lg font-semibold hover-bg-secondary transition duration-300 shadow-md">
+                            + Adicionar Novo Serviço
+                        </button>
+                        <div id="servico-message" class="text-center p-2 text-sm hidden rounded-lg"></div>
+
+                        <div class="pt-3">
+                            <h4 class="font-semibold text-gray-700 text-sm mb-1">Serviços Cadastrados:</h4>
+                            <ul id="lista-servicos-cadastrados" class="space-y-1 text-sm bg-gray-50 p-2 rounded-md border border-gray-200">
+                                <li class="text-gray-500 italic">Carregando...</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+
+            </section>
+            <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-custom">
+                <div class="flex flex-col gap-3 mb-4 border-b pb-2">
+                    <h2 class="text-xl font-bold text-primary">🗓️ Agenda por Período</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <select id="filtro-periodo" class="p-2 border border-primary rounded-lg focus:ring-1 focus:ring-primary bg-white text-gray-700" onchange="iniciarMonitoramentoAgendamentos()">
+                            <option value="Dia">Dia</option>
+                            <option value="Semana">Semana</option>
+                            <option value="Mes">Mês</option>
+                        </select>
+                        <input type="date" id="data-filtro" class="p-2 border border-primary rounded-lg focus:ring-1 focus:ring-primary bg-white text-gray-700" onchange="iniciarMonitoramentoAgendamentos()">
+                    </div>
+                </div>
+
+                <div class="mb-5 p-4 bg-secondary text-white rounded-lg shadow-md flex justify-between items-center">
+                    <span class="text-lg font-bold">Faturamento Concluído do Período:</span>
+                    <span id="faturamento-total" class="text-2xl font-extrabold">R$ 0,00</span>
+                </div>
+                
+                <div class="mb-5 p-4 bg-purple-200 text-purple-900 rounded-lg shadow-md flex justify-between items-center">
+                    <span class="text-lg font-bold">Previsão de Faturamento (Agendado):</span>
+                    <span id="faturamento-projetado" class="text-2xl font-extrabold">R$ 0,00</span>
+                </div>
+                
+                <h3 class="text-lg font-semibold mb-3">Agendamentos para <span id="data-selecionada-view" class="text-secondary"></span></h3>
+                
+                <ul id="lista-agendamentos" class="space-y-3">
+                    <li class="text-center text-gray-500 p-4">Selecione uma data para começar...</li>
+                </ul>
+
+                <div id="user-info" class="mt-6 p-3 bg-gray-100 rounded-lg text-sm text-gray-600">
+                    <p>Seu ID de Usuário: <span id="user-id" class="font-mono break-all text-xs text-secondary">...</span></p>
+                    <p id="auth-mode-message" class="mt-1 text-red-600 font-semibold"></p>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <script type="module">
+        // Importação do Supabase Client
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+        
+        // ======================================================================================
+        //                  PASSO 1: SUAS CHAVES DO SUPABASE
+        // ======================================================================================
+        // 🚨 ATENÇÃO: SUBSTITUA ESTES VALORES PELOS SEUS REAIS NO PAINEL DO SUPABASE (Settings > API)
+        const SUPABASE_REF = 'owplcvzgmjyrkhjnnybm]';
+        const SUPABASE_URL = `https://owplcvzgmjyrkhjnnybm.supabase.co`; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93cGxjdnpnbWp5cmtoam5ueWJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MTU3OTUsImV4cCI6MjA3NjA5MTc5NX0.xIS1zR43Y0CVxdxRjh3V-QlTfDmHofoBtWLGK_yoULI';
+        // ======================================================================================
+        
+        // Variáveis globais
+        let supabase = null;
+        let userId = null; 
+        let isAuthReady = false;
+        let unsubscribeAgenda = null; 
+        let servicosMap = {}; 
+        const LOCAL_STORAGE_KEY = `nail_art_user_id_${SUPABASE_REF}`;
+
+        // Elementos do DOM (Atualizados)
+        const selectServico = document.getElementById('servico');
+        const formAgendamento = document.getElementById('form-agendamento');
+        const listaAgendamentos = document.getElementById('lista-agendamentos');
+        const dataFiltro = document.getElementById('data-filtro');
+        const filtroPeriodo = document.getElementById('filtro-periodo');
+        const dataSelecionadaView = document.getElementById('data-selecionada-view');
+        const authStatus = document.getElementById('auth-status');
+        const userIdDisplay = document.getElementById('user-id');
+        const formMessage = document.getElementById('form-message');
+        const btnAgendar = document.getElementById('btn-agendar');
+        const loadingMessage = document.getElementById('loading-message');
+        const faturamentoTotalDisplay = document.getElementById('faturamento-total'); 
+        const faturamentoProjetadoDisplay = document.getElementById('faturamento-projetado');
+        const authModeMessage = document.getElementById('auth-mode-message');
+
+        // NOVOS ELEMENTOS PARA GESTÃO DE SERVIÇOS
+        const formServico = document.getElementById('form-servico');
+        const btnAdicionarServico = document.getElementById('btn-adicionar-servico');
+        const servicoMessage = document.getElementById('servico-message');
+        const listaServicosCadastrados = document.getElementById('lista-servicos-cadastrados');
+
+
+        // --- FUNÇÕES DE UTILIDADE ---
+
+        function setLoading(isLoading, message = 'Conectando ao Banco de Dados...') {
+            document.body.classList.toggle('is-loading', isLoading);
+            loadingMessage.textContent = message;
+        }
+
+        // Função para mostrar mensagens de feedback no formulário principal
+        function showMessage(message, type = 'success') {
+            formMessage.textContent = message;
+            formMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            if (type === 'error') {
+                formMessage.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                formMessage.classList.add('bg-green-100', 'text-green-700');
+            }
+            setTimeout(() => formMessage.classList.add('hidden'), 5000);
+        }
+
+        // Função para mostrar mensagens de feedback no formulário de serviço
+        function showServicoMessage(message, type = 'success') {
+            servicoMessage.textContent = message;
+            servicoMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            if (type === 'error') {
+                servicoMessage.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                servicoMessage.classList.add('bg-green-100', 'text-green-700');
+            }
+            setTimeout(() => servicoMessage.classList.add('hidden'), 5000);
+        }
+
+        // Helper para calcular o range de datas (Início e Fim)
+        function calculateDateRange(anchorDate, periodType) {
+            const parts = anchorDate.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; 
+            const day = parseInt(parts[2]);
+
+            let start = new Date(year, month, day, 0, 0, 0, 0); 
+            let end = new Date(start);
+
+            switch (periodType) {
+                case 'Semana':
+                    const dayOfWeek = start.getDay(); 
+                    start.setDate(start.getDate() - dayOfWeek);
+                    
+                    end = new Date(start);
+                    end.setDate(end.getDate() + 6);
+                    end.setHours(23, 59, 59, 999);
+                    
+                    break;
+                case 'Mes':
+                    start.setDate(1);
+
+                    end = new Date(start.getFullYear(), start.getMonth() + 1, 0); 
+                    end.setHours(23, 59, 59, 999);
+                    break;
+                case 'Dia':
+                default:
+                    end.setHours(23, 59, 59, 999);
+                    break;
+            }
+            
+            return { 
+                start: start.toISOString(), 
+                end: end.toISOString(),
+                startDisplay: start,
+                endDisplay: end 
+            };
+        }
+
+        // --- FUNÇÃO PARA ATUALIZAR STATUS (SUPABASE) ---
+        async function updateAgendamentoStatus(docId, newStatus) {
+            if (!userId) return showMessage('Aguarde a conexão com o banco de dados.', 'error');
+            
+            setLoading(true, 'Atualizando status...');
+
+            try {
+                const { error } = await supabase
+                    .from('agendamentos_nail_art')
+                    .update({ 
+                        status: newStatus,
+                        atualizado_em: new Date().toISOString()
+                    })
+                    // Filtra pelo ID do agendamento E pelo user_id (RLS ou filtro manual)
+                    .eq('id', docId) 
+                    .eq('user_id', userId);
+
+                if (error) throw error;
+
+                showMessage(`Agendamento #${docId.substring(0, 4)} marcado como '${newStatus}' com sucesso!`);
+            } catch (error) {
+                console.error(`Erro ao atualizar agendamento ${docId}:`, error.message);
+                showMessage(`Falha ao atualizar status para '${newStatus}'.`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        window.updateAgendamentoStatus = updateAgendamentoStatus; 
+
+        // --- SUPABASE SETUP E AUTENTICAÇÃO ---
+
+        async function initializeSupabase() { 
+            setLoading(true);
+
+            try {
+                // 1. Cria o cliente Supabase
+                supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+                // 2. Tenta obter o userId via Supabase Auth (preferencialmente)
+                authStatus.textContent = 'Autenticando...';
+                let authError = null;
+                let maxRetries = 3;
+                let delay = 1000; // 1 segundo
+                let authSuccess = false;
+                
+                // Tenta Autenticação Padrão (Anonymous) com Exponential Backoff
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        let { data: { session } } = await supabase.auth.getSession();
+                        
+                        if (!session || !session.user) {
+                             // Se não houver sessão, tenta login anônimo
+                             const { data, error } = await supabase.auth.signInAnonymously();
+                             if (error) throw error;
+                             session = data.session;
+                        }
+
+                        if (session && session.user) {
+                            userId = session.user.id;
+                            authSuccess = true;
+                            break; // Sai do loop se a autenticação for bem-sucedida
+                        }
+
+                    } catch (error) {
+                        authError = error;
+                        console.warn(`Tentativa de Auth Supabase falhou (Retry ${i + 1}/${maxRetries}):`, error.message);
+                        
+                        if (i < maxRetries - 1) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2; // Dobra o atraso
+                        }
+                    }
+                }
+
+                if (authSuccess) {
+                    // Sucesso na Autenticação
+                    authStatus.textContent = `Conectado (Auth: Supabase)`;
+                    authModeMessage.textContent = 'Modo RLS: Autenticado. Garante segurança total via Auth.';
+                    authModeMessage.classList.remove('text-red-600');
+                    authModeMessage.classList.add('text-green-600');
+                } else {
+                    // Falha total na Autenticação
+                    console.warn("Falha persistente na autenticação do Supabase. Usando ID local.", authError?.message);
+                    
+                    // Tenta recuperar ID local ou gerar um novo
+                    let localId = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (!localId) {
+                        // Verifica se o browser suporta crypto.randomUUID (quase todos modernos suportam)
+                        localId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36);
+                        localStorage.setItem(LOCAL_STORAGE_KEY, localId);
+                    }
+                    userId = localId;
+
+                    authStatus.textContent = `Conectado (Auth: Local Fallback)`;
+                    authModeMessage.textContent = 'Atenção: Auth anônima falhou. Usando ID local. Verifique as RLS se precisar de segurança Auth.';
+                    authModeMessage.classList.remove('text-green-600');
+                    authModeMessage.classList.add('text-red-600');
+                }
+
+
+                if (!userId) {
+                    throw new Error("Não foi possível estabelecer um ID de usuário, autenticado ou local.");
+                }
+
+                // 3. Setup final
+                isAuthReady = true;
+                userIdDisplay.textContent = userId; 
+
+                // Chamadas iniciais
+                try {
+                    await carregarServicosNoSelect();
+                    await carregarListaServicosCadastrados(); // NOVO: Carrega a lista de serviços para o painel de gestão
+                } catch(e) {
+                     console.error("Erro ao carregar serviços:", e);
+                }
+                
+                // Realtime é iniciado aqui
+                iniciarMonitoramentoAgendamentos(); 
+
+            } catch (error) {
+                console.error("Erro fatal na inicialização e autenticação do Supabase:", error);
+                authStatus.textContent = `Erro de Conexão: ${error.message}`;
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // --- FUNÇÕES DE CARREGAMENTO DE SERVIÇOS ---
+
+        // 3. Carrega Serviços no SELECT do formulário E monta o Mapa
+        async function carregarServicosNoSelect() {
+            if (!userId) {
+                selectServico.innerHTML = '<option value="">Aguardando conexão...</option>';
+                return;
+            }
+
+            selectServico.innerHTML = '<option value="">Selecione um Serviço</option>';
+            servicosMap = {}; 
+
+            const { data: servicos, error } = await supabase
+                .from('servicos_nail_art')
+                .select('*')
+                .eq('user_id', userId);
+
+            if (error) {
+                console.error("Erro ao carregar serviços:", error.message);
+                showMessage('Erro ao carregar lista de serviços. Verifique a tabela e RLS.', 'error');
+                selectServico.innerHTML = '<option value="">Erro ao Carregar Serviços</option>';
+                throw new Error(error.message); 
+            }
+
+            if (servicos && servicos.length > 0) {
+                servicos.forEach(servico => {
+                    const option = document.createElement('option');
+                    const valorNumerico = parseFloat(servico.valor_reais); 
+                    
+                    option.value = servico.id;
+                    option.textContent = `${servico.nome} (R$ ${valorNumerico.toFixed(2)} | ${servico.duracao_minutos} min)`;
+                    option.setAttribute('data-duracao', servico.duracao_minutos);
+                    selectServico.appendChild(option);
+
+                    servicosMap[servico.id] = {
+                        valor: valorNumerico,
+                        duracao: servico.duracao_minutos
+                    };
+                });
+            } else {
+                showMessage('Nenhum serviço encontrado. Adicione um novo no painel "Gerenciar Serviços".', 'error');
+                selectServico.innerHTML = '<option value="">Nenhum Serviço Encontrado</option>';
+            }
+        }
+        
+        // 4. Nova função para Renderizar Lista Simples de Serviços Cadastrados
+        function renderizarListaServicos(servicos) {
+            listaServicosCadastrados.innerHTML = '';
+            
+            if (!servicos || servicos.length === 0) {
+                listaServicosCadastrados.innerHTML = '<li class="text-gray-500 italic">Nenhum serviço cadastrado.</li>';
+                return;
+            }
+
+            servicos.forEach(servico => {
+                const valorDisplay = parseFloat(servico.valor_reais).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const listItem = `
+                    <li class="p-1 border-b border-gray-100 flex justify-between">
+                        <span class="font-medium text-gray-800">${servico.nome}</span>
+                        <span class="text-xs text-gray-500">${valorDisplay} | ${servico.duracao_minutos} min</span>
+                    </li>
+                `;
+                listaServicosCadastrados.insertAdjacentHTML('beforeend', listItem);
+            });
+        }
+        
+        // 6. Função para carregar a lista de serviços cadastrados
+        async function carregarListaServicosCadastrados() {
+            if (!userId) {
+                listaServicosCadastrados.innerHTML = '<li class="text-gray-500 italic">Aguardando conexão...</li>';
+                return;
+            }
+
+            const { data: servicos, error } = await supabase
+                .from('servicos_nail_art')
+                .select('nome, duracao_minutos, valor_reais')
+                .eq('user_id', userId)
+                .order('nome', { ascending: true }); // Ordena por nome
+            
+            if (error) {
+                console.error("Erro ao carregar lista de serviços cadastrados:", error.message);
+                renderizarListaServicos(null);
+                return;
+            }
+
+            renderizarListaServicos(servicos);
+        }
+
+        // --- EVENT LISTENERS E LÓGICA DE NEGÓCIO ---
+
+        // Lógica de Adicionar Novo Serviço (INSERT)
+        formServico.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!userId) return showServicoMessage('Aguarde a conexão com o banco de dados.', 'error');
+
+            btnAdicionarServico.disabled = true;
+            btnAdicionarServico.textContent = 'Adicionando...';
+
+            const nomeServico = document.getElementById('nome-servico').value.trim();
+            const duracaoMinutos = parseInt(document.getElementById('duracao-servico').value);
+            const valorReais = parseFloat(document.getElementById('valor-servico').value);
+
+            // Gera um ID UUID para garantir que seja único
+            const newId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : (new Date()).getTime().toString();
+
+            if (!nomeServico || isNaN(duracaoMinutos) || duracaoMinutos <= 0 || isNaN(valorReais) || valorReais < 0) {
+                btnAdicionarServico.disabled = false;
+                btnAdicionarServico.textContent = '+ Adicionar Novo Serviço';
+                return showServicoMessage('Preencha todos os campos do serviço corretamente.', 'error');
+            }
+
+            try {
+                const novoServico = {
+                    id: newId, 
+                    user_id: userId,
+                    nome: nomeServico,
+                    duracao_minutos: duracaoMinutos,
+                    valor_reais: valorReais,
+                };
+
+                const { error: insertError } = await supabase
+                    .from('servicos_nail_art')
+                    .insert([novoServico]);
+
+                if (insertError) throw insertError;
+                
+                showServicoMessage(`Serviço "${nomeServico}" adicionado com sucesso!`, 'success');
+                formServico.reset();
+
+                // Recarrega as listas após o sucesso
+                await carregarServicosNoSelect();
+                await carregarListaServicosCadastrados();
+
+            } catch (error) {
+                console.error("Erro ao adicionar serviço:", error.message);
+                showServicoMessage(`Erro: Falha ao adicionar serviço. ${error.message}`, 'error');
+            } finally {
+                btnAdicionarServico.disabled = false;
+                btnAdicionarServico.textContent = '+ Adicionar Novo Serviço';
+            }
+        });
+
+
+        // Lógica de Agendamento (com checagem de conflito via SELECT + INSERT)
+        formAgendamento.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!userId) return showMessage('Aguarde a conexão com o banco de dados.', 'error');
+
+            btnAgendar.disabled = true;
+            btnAgendar.textContent = 'Agendando...';
+
+            const clienteNome = document.getElementById('nome-cliente').value.trim();
+            const clienteTelefone = document.getElementById('telefone-cliente').value.trim();
+            const servicoId = selectServico.value;
+            const dataAgenda = document.getElementById('data-agenda').value;
+            const horaAgenda = document.getElementById('hora-agenda').value;
+            
+            const selectedOption = selectServico.options[selectServico.selectedIndex];
+            const duracaoMinutos = selectedOption && selectedOption.getAttribute('data-duracao') ? parseInt(selectedOption.getAttribute('data-duracao')) : NaN;
+            
+            const servicoNome = selectedOption ? selectedOption.textContent.split('(')[0].trim() : 'Serviço Desconhecido';
+            const servicoValor = servicosMap[servicoId] ? servicosMap[servicoId].valor : 0;
+
+            if (!servicoId || !dataAgenda || !horaAgenda || isNaN(duracaoMinutos) || duracaoMinutos <= 0) {
+                btnAgendar.disabled = false;
+                btnAgendar.textContent = 'Agendar Horário';
+                return showMessage('Por favor, preencha todos os campos obrigatórios e selecione um serviço válido.', 'error');
+            }
+
+            // 1. Calcula os Timestamps
+            const dataHoraInicio = new Date(`${dataAgenda}T${horaAgenda}:00`);
+            const dataHoraFim = new Date(dataHoraInicio.getTime() + duracaoMinutos * 60000);
+            
+            if (dataHoraInicio < new Date()) {
+                btnAgendar.disabled = false;
+                btnAgendar.textContent = 'Agendar Horário';
+                return showMessage('Não é possível agendar em datas/horas passadas.', 'error');
+            }
+
+            // 2. Checagem de Conflito
+            try {
+                const { data: conflitoData, error: conflitoError } = await supabase
+                    .from('agendamentos_nail_art')
+                    .select('id, status')
+                    .eq('user_id', userId)
+                    .lt('data_hora_inicio', dataHoraFim.toISOString()) 
+                    .gt('data_hora_fim', dataHoraInicio.toISOString()); 
+
+                if (conflitoError) throw conflitoError;
+
+                const conflitoExistente = conflitoData.some(ag => ag.status === 'Agendado' || ag.status === 'Concluído');
+
+                if (conflitoExistente) {
+                    throw new Error("Conflito de Horário: Já existe um agendamento neste intervalo.");
+                }
+
+                // 3. Insere o novo agendamento
+                const novoAgendamento = {
+                    cliente_nome: clienteNome,
+                    cliente_telefone: clienteTelefone || null,
+                    servico_id: servicoId,
+                    servico_nome: servicoNome,
+                    servico_valor: servicoValor, 
+                    data_hora_inicio: dataHoraInicio.toISOString(), 
+                    data_hora_fim: dataHoraFim.toISOString(),
+                    status: 'Agendado', 
+                    user_id: userId, // Chave RLS ou filtro manual
+                };
+
+                const { error: insertError } = await supabase
+                    .from('agendamentos_nail_art')
+                    .insert([novoAgendamento]);
+
+                if (insertError) throw insertError;
+                
+                showMessage('Agendamento realizado com sucesso!', 'success');
+                formAgendamento.reset();
+                
+            } catch (error) {
+                console.error("Erro no agendamento:", error.message);
+                showMessage(`Erro: ${error.message.includes('Conflito') ? error.message : 'Falha ao processar agendamento.'}`, 'error');
+            } finally {
+                btnAgendar.disabled = false;
+                btnAgendar.textContent = 'Agendar Horário';
+            }
+        });
+
+        // 5. Monitoramento em Tempo Real da Agenda (Realtime Subscriptions)
+        
+        async function fetchAgendamentos(start, end) {
+            const { data: agendamentos, error } = await supabase
+                .from('agendamentos_nail_art')
+                .select('*')
+                .eq('user_id', userId)
+                .gte('data_hora_inicio', start)
+                .lte('data_hora_inicio', end);
+                
+            if (error) {
+                console.error("Erro ao buscar agendamentos:", error.message);
+                throw error;
+            }
+            
+            // Ordena por data/hora de início localmente 
+            agendamentos.sort((a, b) => new Date(a.data_hora_inicio) - new Date(b.data_hora_inicio));
+            return agendamentos;
+        }
+
+
+        window.iniciarMonitoramentoAgendamentos = function() {
+            if (!userId) return;
+
+            if (unsubscribeAgenda) {
+                // Tenta remover o canal anterior se existir
+                try {
+                    supabase.removeChannel(unsubscribeAgenda);
+                } catch(e) {
+                    console.warn("Erro ao tentar remover canal Supabase existente:", e);
+                }
+                unsubscribeAgenda = null;
+            }
+
+            setLoading(true, 'Carregando agenda...');
+
+            const dataAnchor = dataFiltro.value;
+            const periodType = filtroPeriodo.value;
+
+            if (!dataAnchor) return;
+
+            const { start, end, startDisplay, endDisplay } = calculateDateRange(dataAnchor, periodType);
+
+            let displayMessage = '';
+            if (periodType === 'Dia') {
+                displayMessage = startDisplay.toLocaleDateString('pt-BR', { dateStyle: 'long' });
+            } else if (periodType === 'Semana') {
+                const startStr = startDisplay.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                const endStr = endDisplay.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                displayMessage = `Semana de ${startStr} até ${endStr}`;
+            } else if (periodType === 'Mes') {
+                displayMessage = startDisplay.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' });
+            }
+
+            dataSelecionadaView.textContent = displayMessage;
+            
+            // 5.3 Cria um novo listener em tempo real (Supabase Realtime)
+            unsubscribeAgenda = supabase
+                .channel('agendamentos_channel_' + userId)
+                .on('postgres_changes', { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'agendamentos_nail_art', 
+                    filter: `user_id=eq.${userId}` 
+                }, async (payload) => {
+                    try {
+                        // Re-busca os dados filtrados
+                        const newAgendamentos = await fetchAgendamentos(start, end);
+                        renderizarAgendamentos(newAgendamentos);
+                    } catch (error) {
+                           console.error("Erro ao processar atualização em tempo real:", error);
+                    }
+                })
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        try {
+                            // Fetch inicial após a subscrição
+                            const initialAgendamentos = await fetchAgendamentos(start, end);
+                            renderizarAgendamentos(initialAgendamentos);
+                        } catch (error) {
+                            listaAgendamentos.innerHTML = `<li class="text-center text-red-500 p-4">Erro ao carregar agenda.</li>`;
+                        } finally {
+                           setLoading(false);
+                        }
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error("Erro na subscrição do canal Realtime.");
+                        setLoading(false);
+                    }
+                });
+        }
+
+        // 6. Renderização da Lista de Agendamentos E CÁLCULO DE FATURAMENTO
+        function renderizarAgendamentos(agendamentos) {
+            listaAgendamentos.innerHTML = '';
+            let faturamentoTotal = 0; 
+            let faturamentoProjetado = 0; 
+
+            if (agendamentos.length === 0) {
+                listaAgendamentos.innerHTML = '<li class="text-center text-gray-500 p-4">Nenhum agendamento encontrado para este período.</li>';
+                faturamentoTotalDisplay.textContent = 'R$ 0,00';
+                faturamentoProjetadoDisplay.textContent = 'R$ 0,00';
+                return;
+            }
+
+            agendamentos.forEach(agendamento => {
+                const isCompleted = agendamento.status === 'Concluído';
+                const isCancelled = agendamento.status === 'Cancelado';
+                const isScheduled = agendamento.status === 'Agendado';
+                
+                const valorServico = parseFloat(agendamento.servico_valor) || (servicosMap[agendamento.servico_id]?.valor || 0);
+
+                if (isCompleted) {
+                    faturamentoTotal += valorServico;
+                } else if (isScheduled) {
+                    faturamentoProjetado += valorServico;
+                }
+
+                let statusStyle = 'border-primary';
+                let statusText = agendamento.status || 'Agendado';
+                let actionButtons = '';
+                const valorDisplay = valorServico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+
+                if (isCompleted) {
+                    statusStyle = 'opacity-60 border-green-500 bg-green-50/50';
+                    statusText = '✅ Concluído';
+                } else if (isCancelled) {
+                    statusStyle = 'opacity-40 border-red-500 line-through bg-red-50/50';
+                    statusText = '❌ Cancelado';
+                } else {
+                    actionButtons = `
+                        <div class="flex space-x-2 mt-2 sm:mt-0 flex-shrink-0">
+                            <button onclick="updateAgendamentoStatus('${agendamento.id}', 'Concluído')" class="p-2 text-sm text-white bg-green-600 rounded-md hover:bg-green-700 transition font-semibold shadow-sm">
+                                Concluir
+                            </button>
+                            <button onclick="updateAgendamentoStatus('${agendamento.id}', 'Cancelado')" class="p-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 transition font-semibold shadow-sm">
+                                Cancelar
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                const dataInicio = new Date(agendamento.data_hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const dataFim = new Date(agendamento.data_hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const servicoInfo = `${agendamento.servico_nome} (${valorDisplay})`;
+                const telefoneInfo = agendamento.cliente_telefone ? `<span class="text-xs text-gray-500 ml-2">${agendamento.cliente_telefone}</span>` : '';
+
+                const listItem = `
+                    <li class="p-4 border-l-4 ${statusStyle} bg-white rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center transition duration-150">
+                        <div class="flex-grow">
+                            <p class="text-md font-bold text-gray-900">${agendamento.cliente_nome} ${telefoneInfo}</p>
+                            <p class="text-sm text-secondary font-semibold">${dataInicio} - ${dataFim} <span class="text-gray-400">|</span> ${servicoInfo}</p>
+                            <p class="text-xs mt-1 italic text-gray-500">Status: ${statusText}</p>
+                        </div>
+                        ${actionButtons}
+                    </li>
+                `;
+                listaAgendamentos.insertAdjacentHTML('beforeend', listItem);
+            });
+
+            // Atualiza os painéis de faturamento
+            faturamentoTotalDisplay.textContent = faturamentoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            faturamentoProjetadoDisplay.textContent = faturamentoProjetado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // Funções de Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            // Define a data atual como filtro padrão
+            dataFiltro.value = new Date().toISOString().substring(0, 10);
+            
+            // Inicia o Supabase
+            initializeSupabase();
+        });
+    </script>
+</body>
+</html>
